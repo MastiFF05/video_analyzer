@@ -1,38 +1,46 @@
-from pz1_image_processing import ImageProcessor
-from pz2_video_frames import VideoDownloader, FrameExtractor
-# ... импорты всех ПЗ
+import json
+from pathlib import Path
 
-def analyze_video(source, quality='1080p', output_dir='analysis'):
-    pipeline = {
-        'frames': [], 'texts': [], 'objects_yolo': [],
-        'objects_resnet': [], 'gemini': [], 'audio': []
-    }
-    
-    # 1-2. Скачать + нарезать
-    video_path = VideoDownloader().download(source, quality)
-    frames_dir = FrameExtractor().extract(video_path, fps=2)
-    
-    # 3-7. Анализ каждого кадра
-    processor = ImageProcessor()
-    yolo = YOLODetector()
-    for frame in Path(frames_dir).glob('*.jpg'):
-        # OCR
-        binary = processor.preprocess_meter(frame)
-        number = processor.extract_number(binary)
-        if number: pipeline['texts'].append(number)
-        
-        # YOLO + ResNet + Gemini
-        pipeline['objects_yolo'].extend(yolo.detect_frame(frame))
-    
-    # 4. Аудио
-    pipeline['audio'] = AudioProcessor().transcribe_video(video_path)
-    
-    # 8. Постобработка
-    pipeline['texts'] = deduplicate_texts(pipeline['texts'])
-    
-    # Отчет
-    generate_report(pipeline, output_dir)
-    return pipeline
+from src.modules.pz2 import VideoDownloader, FrameExtractor
+from src.modules.pz3 import run_subtitle_analysis
+from src.modules.pz4 import extract_audio_and_transcribe
+from src.modules.pz5 import run_yolo_detection
+from src.modules.pz6 import classify_frames_resnet
+from src.modules.pz7 import QwenAnalyzer
+from src.modules.pz8 import postprocess_all
+from src.utils.report import generate_final_report
 
-if __name__ == "__main__":
-    analyze_video("https://rutube.ru/video/demo", "720p")
+
+def run_pipeline(video_path, fps=2.0, skip_frames=90, max_frames=15, delay=5):
+    video_path = Path(video_path)
+    print(f"Видео: {video_path.name}")
+
+    FrameExtractor().extract(str(video_path), output_folder="frames", fps=fps)
+
+    print("PZ3 → Распознавание текста (субтитры)...")
+    run_subtitle_analysis()
+
+    print("PZ4 → Whisper транскрипция аудио...")
+    audio_result = extract_audio_and_transcribe(str(video_path))
+
+    print("PZ5 → YOLOv8 детекция объектов...")
+    yolo_data = run_yolo_detection("frames")
+
+    print("PZ6 → ResNet50 классификация...")
+    resnet_data = classify_frames_resnet("frames")
+
+    print("PZ7 → LLM (анализ деструктивного контента)...")
+    analyzer = QwenAnalyzer()
+    qwen_results = analyzer.analyze_key_frames(
+        frames_folder="frames",
+        skip=skip_frames,
+        max_frames=max_frames,
+        delay=delay
+    )
+
+    print("PZ8 → Постобработка и risk-scoring...")
+    final_results = postprocess_all(yolo_data, resnet_data, audio_result, qwen_results)
+
+    report = generate_final_report(video_path, final_results)
+
+    return report
