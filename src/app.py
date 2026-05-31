@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from src.main_pipeline import run_pipeline
-from src.modules.pz2 import VideoDownloader
+from src.modules.pz2_frame_extractor import VideoDownloader
 
 
 class VideoAnalyzerApp:
