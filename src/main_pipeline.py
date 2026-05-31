@@ -1,13 +1,13 @@
 import json
 from pathlib import Path
 
-from src.modules.pz2 import VideoDownloader, FrameExtractor
-from src.modules.pz3 import run_subtitle_analysis
-from src.modules.pz4 import extract_audio_and_transcribe
-from src.modules.pz5 import run_yolo_detection
-from src.modules.pz6 import classify_frames_resnet
-from src.modules.pz7 import QwenAnalyzer
-from src.modules.pz8 import postprocess_all
+from src.modules.pz2_frame_extractor import VideoDownloader, FrameExtractor
+from src.modules.pz3_subtitle_ocr import run_subtitle_analysis
+from src.modules.pz4_whisper_transcriber import extract_audio_and_transcribe
+from src.modules.pz5_yolo import run_yolo_detection
+from src.modules.pz6_resnet import classify_frames_resnet
+from src.modules.pz7_llm_analyzer import QwenAnalyzer
+from src.modules.pz8_multimodal_analyzer import postprocess_all
 from src.utils.report import generate_final_report
 
 
