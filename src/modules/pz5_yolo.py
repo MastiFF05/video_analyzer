@@ -2,6 +2,9 @@ from ultralytics import YOLO
 import cv2
 import json
 from pathlib import Path
+from src.utils.logging import setup_logging
+
+logger = setup_logging()
 
 
 def run_yolo_detection(input_folder="frames"):
@@ -37,5 +40,5 @@ def run_yolo_detection(input_folder="frames"):
     with open("../pz5_yolo_detections.json", "w", encoding="utf-8") as f:
         json.dump(results_dict, f, ensure_ascii=False, indent=2)
 
-    print(f"   YOLO: обнаружено объектов на {len(results_dict)} кадрах")
+    logger.info(f"   YOLO: обнаружено объектов на {len(results_dict)} кадрах")
     return results_dict
