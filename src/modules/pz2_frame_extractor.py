@@ -1,6 +1,9 @@
 import yt_dlp
 import cv2
 import os
+from src.utils.logging import setup_logging
+
+logger = setup_logging()
 
 class VideoDownloader:
     QUALITY_MAP = {
@@ -8,7 +11,7 @@ class VideoDownloader:
         '720p': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
         '1080p': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'
     }
-    
+
     def download(self, url, quality='1080p', output_dir='downloads'):
         os.makedirs(output_dir, exist_ok=True)
         ydl_opts = {
@@ -26,7 +29,7 @@ class FrameExtractor:
         cap = cv2.VideoCapture(video_source)
 
         if not cap.isOpened():
-            print(f'Ошибка: не удалось открыть источник {video_source}')
+            logger.info(f'Ошибка: не удалось открыть источник {video_source}')
             return
 
         video_fps = cap.get(cv2.CAP_PROP_FPS)
