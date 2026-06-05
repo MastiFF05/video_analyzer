@@ -11,10 +11,10 @@ def postprocess_all(yolo_data, resnet_data, audio_data, qwen_data=None):
     object_counter = Counter(all_objects)
 
     # === Risk Scoring ===
-    dangerous = {"knife", "gun", "weapon", "blood", "person", "skull", "nazi"}  # можно расширять
+    dangerous = {"knife", "gun", "weapon", "blood", "person", "skull", "nazi", "drugs", "alcohol"}  # можно расширять
     risk_score = sum(0.25 for obj in object_counter if obj.lower() in dangerous)
 
-    # LLM findings
+    # Qwen findings
     destructive_count = 0
     findings = []
     if qwen_data:
@@ -34,7 +34,7 @@ def postprocess_all(yolo_data, resnet_data, audio_data, qwen_data=None):
                 findings.append(text)
 
             low = text.lower()
-            if any(word in low for word in ["есть", "да", "оруж", "кров", "насил", "экстре"]):
+            if any(word in low for word in ["есть", "да", "оруж", "кров", "насил", "экстре", "наркот", "алко"]):
                 destructive_count += 1
 
     risk_score += destructive_count * 0.4
