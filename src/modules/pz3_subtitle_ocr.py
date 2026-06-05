@@ -2,11 +2,13 @@ import cv2
 import easyocr
 import json
 from pathlib import Path
-from src.modules.pz1_video_loader import ImageProcessor
+from src.modules.pz1_ocr_preprocessor import ImageProcessor
+from src.utils.logging import setup_logging
 
+logger = setup_logging()
 
 def run_subtitle_analysis():
-    print("   Предобработка кадров для OCR...")
+    logger.info("   Предобработка кадров для OCR...")
     processor = ImageProcessor()
     processor.batch_preprocess()
 
@@ -41,4 +43,4 @@ def run_subtitle_analysis():
     with open("../pz3_text_results.json", "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
-    print(f"   Распознано уникальных фрагментов: {len(set(results.values()))}")
+    logger.info(f"   Распознано уникальных фрагментов: {len(set(results.values()))}")
