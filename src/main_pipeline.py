@@ -9,7 +9,7 @@ from src.modules.pz6_resnet import classify_frames_resnet
 from src.modules.pz7_llm_analyzer import QwenAnalyzer
 from src.modules.pz8_multimodal_analyzer import postprocess_all
 from src.utils.report import generate_final_report
-from config import config
+from src.config import config
 
 logger = setup_logging()
 
