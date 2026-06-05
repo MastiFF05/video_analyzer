@@ -3,11 +3,17 @@ from moviepy.editor import VideoFileClip
 import json
 import os
 import re
+from pathlib import Path
+from src.utils.logging import setup_logging
+
+logger = setup_logging()
+
 
 def clean_text(text):
     text = text.strip()
     text = re.sub(r'\s+', ' ', text)
     return text
+
 
 def is_valid_text(text):
     t = text.strip()
@@ -20,50 +26,68 @@ def is_valid_text(text):
         return False
     return True
 
-def extract_audio_and_transcribe(video_path, audio_path="temp_audio.wav", output_json="pz4_transcription.json"):
-    if not os.path.exists(audio_path):
-        video = VideoFileClip(video_path)
-        video.audio.write_audiofile(audio_path, codec='pcm_s16le', verbose=False, logger=None)
 
-    model = pywhisper.load_model("small")
-    result = model.transcribe(audio_path, language='ru', verbose=False)
+def extract_audio_and_transcribe(video_path):
+    video_path = Path(video_path)
+    video_name = video_path.stem
 
-    segments = []
-    seen = set()
-    prev_text = None
-    repeat_count = 0
+    # Делаем уникальное имя для каждого видео
+    audio_path = f"temp_audio_{video_name}.wav"
+    output_json = f"pz4_transcription_{video_name}.json"
 
-    for seg in result.get("segments", []):
-        text = clean_text(seg.get("text", ""))
-        if not is_valid_text(text):
-            continue
+    try:
+        if not os.path.exists(audio_path):
+            logger.info(f"Извлечение аудио из {video_path.name}...")
+            video = VideoFileClip(str(video_path))
+            video.audio.write_audiofile(audio_path, codec='pcm_s16le', verbose=False, logger=None)
+            video.close()
 
-        key = text.lower()
-        if key == prev_text:
-            repeat_count += 1
-        else:
-            repeat_count = 0
-        prev_text = key
+        logger.info("Запуск Whisper транскрипции...")
+        model = pywhisper.load_model("small")
+        result = model.transcribe(audio_path, language='ru', verbose=False)
 
-        if repeat_count >= 2:
-            continue
-        if key in seen:
-            continue
+        segments = []
+        seen = set()
+        prev_text = None
+        repeat_count = 0
 
-        seen.add(key)
-        segments.append({
-            "start": seg.get("start"),
-            "end": seg.get("end"),
-            "text": text
-        })
+        for seg in result.get("segments", []):
+            text = clean_text(seg.get("text", ""))
+            if not is_valid_text(text):
+                continue
 
-    output = {
-        "text": " ".join(item["text"] for item in segments),
-        "segments": segments
-    }
+            key = text.lower()
+            if key == prev_text:
+                repeat_count += 1
+            else:
+                repeat_count = 0
+            prev_text = key
 
-    with open(output_json, "w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2)
+            if repeat_count >= 2 or key in seen:
+                continue
 
-    print(output["text"])
-    return output
+            seen.add(key)
+            segments.append({
+                "start": round(seg.get("start"), 2),
+                "end": round(seg.get("end"), 2),
+                "text": text
+            })
+
+        full_text = " ".join(item["text"] for item in segments)
+
+        output = {
+            "video_name": video_name,
+            "text": full_text,
+            "segments": segments,
+            "segments_count": len(segments)
+        }
+
+        with open(output_json, "w", encoding="utf-8") as f:
+            json.dump(output, f, ensure_ascii=False, indent=2)
+
+        logger.info(f"PZ4 завершён. Распознано сегментов: {len(segments)}")
+        return output
+
+    except Exception as e:
+        logger.error(f"Ошибка в PZ4: {e}")
+        return {"text": "", "segments": [], "error": str(e)}
