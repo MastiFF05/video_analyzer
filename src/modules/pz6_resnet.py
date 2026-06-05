@@ -5,6 +5,9 @@ from pathlib import Path
 import json
 from PIL import Image
 from collections import Counter
+from src.utils.logging import setup_logging
+
+logger = setup_logging()
 
 
 def classify_frames_resnet(input_folder="frames", output_data="pz6_resnet_classes.json"):
@@ -43,6 +46,6 @@ def classify_frames_resnet(input_folder="frames", output_data="pz6_resnet_classe
         json.dump(results, f, indent=2, ensure_ascii=False)
 
     classes_counter = Counter(item['class'] for item in results.values())
-    print("ТОП-10 обнаруженных классов:")
+    logger.info("ТОП-10 обнаруженных классов:")
     for cls, count in classes_counter.most_common(10):
-        print(f"{cls}: {count}")
+        logger.info(f"{cls}: {count}")
